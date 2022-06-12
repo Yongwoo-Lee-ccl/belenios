@@ -159,8 +159,10 @@ def IntegersModP(p):
         def __abs__(self): return abs(self.n)
         def __str__(self): return str(self.n)
         def __repr__(self): return '%d (mod %d)' % (self.n, self.p)
-		# double-and-add algorithm for efficient exponent
-        def __pow__(self, exp): return IntegerModP(power(self.n, exp, self.p))
+        # double-and-add algorithm for efficient exponent
+        def __pow__(self, exp):
+            exp %= IntegerModP.phi
+            return IntegerModP(power(self.n, exp, self.p))
 
         def __divmod__(self, divisor):
             q,r = divmod(self.n, divisor.n)

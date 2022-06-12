@@ -10,20 +10,21 @@ def hash(mod, *args):
     return (int.from_bytes(digest, 'little'))%mod
 
 class Encryption():
-    def __init__(self, Zq):
-        self.Zq = Zq
-        self.g = Zq(Zq.gen)
+    def __init__(self, G):
+        self.G = G
+        self.g = G(G.gen)
 
     def keygen(self):
-        sk = self.Zq.randomInt()
+        sk = self.G.randomInt()
         pk = self.g ** sk
         return (sk, pk)
 
-    def enc(self, msg, pk):
-        msg %= self.Zq.phi
+    def enc(self, msg, pk, r=None):
+        msg %= self.G.phi
 
         g = self.g
-        r = self.Zq.randomInt()
+        if r == None:
+            r = self.G.randomInt()
         return (g**r, pk**r * g**msg)
         
     def dec(self, ct, sk):
@@ -31,37 +32,156 @@ class Encryption():
 
         a,b = ct
         gv = b/(a**sk)
+        return gv
+
+    def distLog(self, gv):
         # naive disc. log for `small' v
+        g = self.g
+
         v = 0
-        powg = self.Zq(1)
+        powg = self.G(1)
         while (powg).n != gv.n:
             powg *= g
             v += 1
         return v
 
 class Signature():
-    def __init__(self, Zq):
-        self.Zq = Zq
-        self.g = Zq(Zq.gen)
+    def __init__(self, G):
+        self.G = G
+        self.g = G(G.gen)
     
     def keygen(self):
-        sk = self.Zq.randomInt()
+        sk = self.G.randomInt()
         vk = self.g ** sk
         return (sk, vk)
     
-    def sign(self, msg, sk):
-        w = self.Zq.randomInt()
+    def sign(self, msg, sk, w=None):
+        if w == None:
+            w = self.G.randomInt()
         gw = self.g ** w
-        c = hash(self.Zq.phi, msg, gw.n)
-        r = (w - sk * c)%self.Zq.phi
+        c = hash(self.G.phi, msg, gw.n)
+        r = (w - sk * c)%self.G.phi
         return r,c
 
     def verifsign(self, msg, sgn, vk):
         r, c = sgn
         A = (self.g ** r) * (vk ** c)
-        digest = hash(self.Zq.phi, msg, A.n)
+        digest = hash(self.G.phi, msg, A.n)
         if c == digest:
             return True
         return False
+
+class ZeroKnowledgeDecrypt():
+    def __init__(self, G):
+        self.G = G
+        self.g = G(G.gen)
+    
+    def proof(self, h, M, C, x): 
+        g = self.g
+        phi = self.G.phi
+
+        k = self.G.randomInt()
+        A = g**k
+        B = C**k
+
+        # Challenge e (Fiat-Shamir)
+        e = hash(phi, g.n, h.n, C.n, M.n, A.n, B.n)
+
+        # Response
+        s = k + x*e
+        s %= phi
+
+        return A, B, s # e is not in proof, it is hash
+    
+    def verify(self, h, M, C, proof):
+        g = self.g
+        phi = self.G.phi
+
+        A, B, s = proof
+
+        e = hash(phi, g.n, h.n, C.n, M.n, A.n, B.n)
+
+        if A != g**s * h**(-e):
+            return False
+        if B != C**s * M**(-e):
+            return False
+
+        return True
+
+
+class ZeroKnowledgeMembership():
+    def __init__(self, G):
+        self.G = G
+        self.g = G(G.gen)
+    
+    def proofv(self, h, ct, M, r, m): 
+        # h: public key, 
+        # m: message following the notation in paper, 
+        # M: set of valid values {M0, ..., Mk}, assume M = [0,k] here
+        alpha, beta = ct
+        g = self.g
+        phi = self.G.phi
+
+        k = len(M) # 0, ..., k-1
+        sigma = [0]*k
+        rho = [0]*k
+        A = [0]*k
+        B = [0]*k
+
+        for j in range(k):
+            if m == j:
+                continue
+
+            sigma[j] = self.G.randomInt()
+            rho[j] = self.G.randomInt()
+
+            A[j] = g**rho[j] * alpha**(-sigma[j])
+            B[j] = h**rho[j] * (beta/(g**j))**(-sigma[j])#Mj =j
+
+        w = self.G.randomInt()
+        A[m] = g**w
+        B[m] = h**w
+        
+        # Challenge e (Fiat-Shamir)
+        An = [a.n for a in A]
+        Bn = [b.n for b in B]
+        e = hash(phi, g.n, h.n, alpha.n, beta.n, *An, *Bn)
+
+        # Response
+        sigma[m] = e
+        for j in range(k):
+            if m == j:
+                continue
+            sigma[m] -= sigma[j]
+        sigma[m] %= phi
+        
+        rho[m] = w + r*sigma[m]
+        rho[m] %= phi
+
+        return A, B, sigma, rho
+    
+    def verifyv(self, h, ct, M, proof):
+        g = self.g
+        phi = self.G.phi
+
+        A, B, sigma, rho = proof
+        alpha, beta = ct
+        An = [a.n for a in A]
+        Bn = [b.n for b in B]
+        e = hash(phi, g.n, h.n, alpha.n, beta.n, *An, *Bn)
+
+        # check e = sum sigma_j
+        if e != sum(sigma)%phi:
+            return False
+
+        k = len(M)
+
+        for j in range(k):
+            if A[j] != g**rho[j] * alpha**(-sigma[j]):
+                return False
+            if B[j] != h**rho[j] * (beta/(g**j))**(-sigma[j]):
+                return False
+
+        return True
 
 

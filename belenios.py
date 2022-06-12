@@ -24,6 +24,11 @@ class Voter():
     def __init__(self, _id):
         self.id = _id
 
+    def vote(self, v, votingServer, encScheme, zkvScheme, signScheme):
+        pk = votingServer.communicate('getEncryptionPublicKey')
+        r = encScheme.Zq.randomInt()
+        ct = encScheme.enc(v, pk, r)
+
     def communicate(self, prefix, *args):
         print("[Communication] Voter [%s] accepted [%s] with %s"%(self.id, prefix, args))
         if prefix == 'signsk':
@@ -42,6 +47,7 @@ class VotingServer():
             self.pk = args[0]
         elif prefix == 'getEncryptionPublicKey':
             print(self.pk) 
+            return self.pk
         elif prefix == 'getVerifKeys':
             print(self.vkListStr())
         elif prefix == 'login':
