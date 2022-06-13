@@ -3,7 +3,7 @@ from crypto import *
 from belenios import *
 
 def run():
-    print("Welcome to Yongwoo's Belenois!\nType valid email address to enroll (press 0 to finish).")
+    print("Welcome to Yongwoo's Belenios!\nType valid email address to enroll (press 0 to finish).")
     voters = dict()
     email = input().strip()
     while email != '0':
