@@ -54,7 +54,7 @@ class VotingServer():
             self.pk = args[0]
 
         elif prefix == 'getEncryptionPublicKey':
-            print(self.pk) 
+            # print(self.pk) 
             return self.pk
 
         elif prefix == 'getVerifKeys':

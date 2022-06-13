@@ -18,7 +18,8 @@ def run():
         print("  ", k)
 
     print("Set cryptographic primitives...")
-    q = 2**16 +1
+    q = 100000004987
+    # q = 2**16 +1
     G = IntegersModP(q)
     signScheme = Signature(G)
     encScheme = Encryption(G)
