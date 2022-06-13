@@ -10,6 +10,19 @@ r = G.randomInt()
 ct = encScheme.enc(m, pk, r)
 print('r:', r)
 
+signScheme = Signature(G)
+sgnk, vk = signScheme.keygen()
+print(isinstance(vk, G))
+print('signing keys: %s, %s'%(sgnk, vk))
+sgn = signScheme.sign(m, sgnk)
+ver = signScheme.verifsign(m, sgn, vk)
+print('sign(not iterable):', m, sgn, ver)
+
+miter = (1,2,3)
+sgn = signScheme.sign(miter, sgnk)
+ver = signScheme.verifsign(miter, sgn, vk)
+print('sign(iterable):', miter, sgn, ver)
+
 a, b = ct
 gv =  encScheme.dec(ct, sk) # gv = b/(a**sk) -> (a**sk) = b/gv = b/ (b/a**sk)
 C = a

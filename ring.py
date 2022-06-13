@@ -1,7 +1,6 @@
 ## Reference: 
 # https://jeremykun.com/category/ring-theory/
 # https://www.geeksforgeeks.org/primitive-root-of-a-prime-number-n-modulo-n/
-#
 
 from math import sqrt
 from random import randrange

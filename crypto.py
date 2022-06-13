@@ -1,10 +1,14 @@
 from ring import *
 from hashlib import sha256
+from collections.abc import Iterable   # import directly from collections for Python < 3.3
+
 INT_LEN = 64
 
 def hash(mod, *args):
     msg = bytearray()
     for arg in args:
+        if not isinstance(arg, int): #then it is elem of G
+            arg = arg.n
         msg += (arg%mod).to_bytes(INT_LEN, 'little')
     digest = sha256(msg).digest()
     return (int.from_bytes(digest, 'little'))%mod
@@ -40,7 +44,7 @@ class Encryption():
 
         v = 0
         powg = self.G(1)
-        while (powg).n != gv.n:
+        while powg != gv:
             powg *= g
             v += 1
         return v
@@ -59,14 +63,20 @@ class Signature():
         if w == None:
             w = self.G.randomInt()
         gw = self.g ** w
-        c = hash(self.G.phi, msg, gw.n)
+        if isinstance(msg, Iterable):
+            c = hash(self.G.phi, *msg, gw)
+        else:
+            c = hash(self.G.phi, msg, gw)
         r = (w - sk * c)%self.G.phi
         return r,c
 
     def verifsign(self, msg, sgn, vk):
         r, c = sgn
         A = (self.g ** r) * (vk ** c)
-        digest = hash(self.G.phi, msg, A.n)
+        if isinstance(msg, Iterable):
+            digest = hash(self.G.phi, *msg, A)
+        else:
+            digest = hash(self.G.phi, msg, A)
         if c == digest:
             return True
         return False
@@ -85,7 +95,7 @@ class ZeroKnowledgeDecrypt():
         B = C**k
 
         # Challenge e (Fiat-Shamir)
-        e = hash(phi, g.n, h.n, C.n, M.n, A.n, B.n)
+        e = hash(phi, g, h, C, M, A, B)
 
         # Response
         s = k + x*e
@@ -99,7 +109,7 @@ class ZeroKnowledgeDecrypt():
 
         A, B, s = proof
 
-        e = hash(phi, g.n, h.n, C.n, M.n, A.n, B.n)
+        e = hash(phi, g, h, C, M, A, B)
 
         if A != g**s * h**(-e):
             return False
@@ -143,9 +153,7 @@ class ZeroKnowledgeMembership():
         B[m] = h**w
         
         # Challenge e (Fiat-Shamir)
-        An = [a.n for a in A]
-        Bn = [b.n for b in B]
-        e = hash(phi, g.n, h.n, alpha.n, beta.n, *An, *Bn)
+        e = hash(phi, g, h, alpha, beta, *A, *B)
 
         # Response
         sigma[m] = e
@@ -166,9 +174,7 @@ class ZeroKnowledgeMembership():
 
         A, B, sigma, rho = proof
         alpha, beta = ct
-        An = [a.n for a in A]
-        Bn = [b.n for b in B]
-        e = hash(phi, g.n, h.n, alpha.n, beta.n, *An, *Bn)
+        e = hash(phi, g, h, alpha, beta, *A, *B)
 
         # check e = sum sigma_j
         if e != sum(sigma)%phi:
