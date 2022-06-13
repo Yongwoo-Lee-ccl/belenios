@@ -67,7 +67,8 @@ def run():
         elif command == '3':
             votingServer.communicate('getVerifKeys')
         elif command == '4':
-            votingServer.communicate('getEncryptionPublicKey')
+            pk = votingServer.communicate('getEncryptionPublicKey')
+            print(pk)
         elif command == '5':
             # verify signature
             print('Verify signature')

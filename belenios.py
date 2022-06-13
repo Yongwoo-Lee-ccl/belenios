@@ -58,7 +58,7 @@ class VotingServer():
             return self.pk
 
         elif prefix == 'getVerifKeys':
-            print(self.vkList())
+            print(self.vkList)
 
         elif prefix == 'vote':
             userID = args[0]
@@ -92,7 +92,7 @@ class VotingServer():
 
             self.result = (res, proof)
 
-        elif prfix == 'getDecryption':
+        elif prefix == 'getDecryption':
             return self.result
         
     def genPasswordsAndDistribute(self):
